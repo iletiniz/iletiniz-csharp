@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
+    <RootNamespace>Iletiniz</RootNamespace>
+    <AssemblyName>Iletiniz</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>Iletiniz</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Iletiniz</Authors>
+    <Description>Iletiniz API resmi .NET SDK'si.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/iletiniz/iletiniz-csharp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/iletiniz/iletiniz-csharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>iletiniz;sms;messaging;api;sdk</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+</Project>
