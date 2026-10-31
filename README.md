@@ -59,6 +59,24 @@ using var client = new IletinizClient(new IletinizClientOptions
 | `client.Messages.SendBulkAsync(parameters)`                 | `POST /v1/messages/bulk`          |
 | `client.Messages.RetrieveAsync(jobId)`                      | `GET /v1/messages/{jobId}`        |
 | `client.Messages.StatusAsync(jobId)` (alias)                | `GET /v1/messages/{jobId}`        |
+| `client.Scheduled.ListAsync(parameters?)`                   | `GET /v1/scheduled`               |
+| `client.Scheduled.RetrieveAsync(id)`                        | `GET /v1/scheduled/{id}`          |
+| `client.Scheduled.CancelAsync(id)`                          | `DELETE /v1/scheduled/{id}`       |
+| `client.Reminders.CreateAsync(parameters)`                  | `POST /v1/reminders`              |
+| `client.Reminders.ListAsync(parameters?)`                   | `GET /v1/reminders`               |
+| `client.Reminders.RetrieveAsync(id)`                        | `GET /v1/reminders/{id}`          |
+| `client.Reminders.UpdateAsync(id, parameters)`              | `PATCH /v1/reminders/{id}`        |
+| `client.Reminders.DeleteAsync(id)`                          | `DELETE /v1/reminders/{id}`       |
+| `client.Partner.ProfileAsync()`                             | `GET /v1/partner`                 |
+| `client.Partner.CreateAccountAsync(parameters)`             | `POST /v1/partner/accounts`       |
+| `client.Partner.ListAccountsAsync(parameters?)`             | `GET /v1/partner/accounts`        |
+| `client.Partner.RetrieveAccountAsync(id)`                   | `GET /v1/partner/accounts/{id}`   |
+| `client.Partner.SuspendAccountAsync(id)` / `UnsuspendAccountAsync(id)` | `POST /v1/partner/accounts/{id}/suspend` / `unsuspend` |
+| `client.Partner.CreateApiKeyAsync(id, parameters)`          | `POST /v1/partner/accounts/{id}/api-keys` |
+| `client.Partner.ListApiKeysAsync(id)`                       | `GET /v1/partner/accounts/{id}/api-keys` |
+| `client.Partner.RevokeApiKeyAsync(id, keyId)`               | `DELETE /v1/partner/accounts/{id}/api-keys/{keyId}` |
+| `client.Partner.TransferQuotaAsync(id, amount)`             | `POST /v1/partner/accounts/{id}/quota-transfers` |
+| `client.Partner.CreateWhatsappSignupLinkAsync(id)`          | `POST /v1/partner/accounts/{id}/whatsapp-signup` |
 
 ### Tek mesaj göndermek
 
@@ -161,11 +179,120 @@ await client.Messages.SendBulkAsync(new SendBulkParams
 });
 ```
 
+### Onaylı WhatsApp şablonu göndermek
+
+Meta'da onaylanmış (APPROVED) bir şablonu `WhatsappTemplate` ile gönderin. `Components`, Meta Cloud API'nin `template.components` biçimini izler. `Sender`, WhatsApp'ta gönderici numaranın Meta `phone_number_id` değeridir (verilmezse bağlantının numarası kullanılır).
+
+```csharp
+var res = await client.Messages.SendAsync(new SendMessageParams
+{
+    To = "+905551234567",
+    Provider = "whatsapp",
+    Sender = "123456789012345",
+    WhatsappTemplate = new WhatsappTemplate
+    {
+        Name = "randevu_hatirlatma",
+        Language = "tr",
+        Components = new[]
+        {
+            new Dictionary<string, object>
+            {
+                ["type"] = "body",
+                ["parameters"] = new[]
+                {
+                    new Dictionary<string, object> { ["type"] = "text", ["text"] = "Ayşe" },
+                    new Dictionary<string, object> { ["type"] = "text", ["text"] = "5 Kasım 10:00" },
+                },
+            },
+        },
+    },
+});
+Console.WriteLine(res.WhatsappTemplate); // randevu_hatirlatma
+```
+
+Toplu gönderimde alıcı başına değişkenleri `BulkItemInput.WhatsappComponents` ile verin; verilmeyen öğelerde üst seviye `Components` kullanılır.
+
+### Zamanlanmış gönderim
+
+`ScheduledAt` verilirse mesaj şimdi gönderilmez; yanıtta `Status = SendStatus.Scheduled` ve `ScheduledId` döner (en az 30 sn, en fazla 90 gün sonrası).
+
+```csharp
+var job = await client.Messages.SendAsync(new SendMessageParams
+{
+    To = "+905551234567",
+    Body = "Yarınki randevunuzu hatırlatırız.",
+    ScheduledAt = new DateTimeOffset(2026, 11, 5, 9, 0, 0, TimeSpan.FromHours(3)),
+});
+
+var pending = await client.Scheduled.ListAsync(new ListScheduledParams { Status = ScheduledStatus.Scheduled });
+await client.Scheduled.CancelAsync(job.ScheduledId!.Value);
+```
+
+### Hatırlatma kuralları
+
+```csharp
+// Randevudan 24 saat ve 2 saat önce
+await client.Reminders.CreateAsync(new CreateReminderParams
+{
+    Type = ReminderType.OneTime,
+    Name = "Randevu #4411",
+    EventAt = new DateTimeOffset(2026, 11, 10, 14, 0, 0, TimeSpan.FromHours(3)),
+    OffsetsMinutes = new[] { 1440, 120 },
+    Message = new ReminderMessage { To = "+905551234567", Body = "Randevunuz 10 Kasım 14:00." },
+});
+
+// Her pazartesi 09:30 (Europe/Istanbul)
+var rule = await client.Reminders.CreateAsync(new CreateReminderParams
+{
+    Type = ReminderType.Recurring,
+    Name = "Haftalık bülten",
+    Frequency = ReminderFrequency.Weekly,
+    DayOfWeek = 1,
+    TimeOfDay = "09:30",
+    Message = new ReminderMessage { To = "+905551234567", Template = "haftalik_bulten" },
+});
+
+await client.Reminders.UpdateAsync(rule.Id, new UpdateReminderParams { Status = ReminderStatus.Paused });
+await client.Reminders.DeleteAsync(rule.Id);
+```
+
+Bitiş tarihini kaldırmak için `new UpdateReminderParams { ClearEndsAt = true }` kullanın.
+
+### Partner API
+
+Partner hesabının `partner:manage` yetkili canlı anahtarıyla:
+
+```csharp
+using var partner = new IletinizClient(Environment.GetEnvironmentVariable("ILETINIZ_PARTNER_KEY")!);
+
+var child = await partner.Partner.CreateAccountAsync(new CreateChildAccountParams
+{
+    Name = "Klinik Ankara",
+    ExternalRef = "klinik-42",
+});
+var key = await partner.Partner.CreateApiKeyAsync(child.Id, new CreateChildApiKeyParams { Name = "prod" });
+// key.Key yalnız bu yanıtta döner; güvenli şekilde saklayın.
+
+// Alt hesabın anahtarlarını listeleyin (düz metin anahtar dönmez, yalnız KeyPrefix) ve gerekirse iptal edin:
+var keys = await partner.Partner.ListApiKeysAsync(child.Id);
+await partner.Partner.RevokeApiKeyAsync(child.Id, keys.Data[0].Id); // idempotent: iptal edilmişse aynı nesne döner
+
+await partner.Partner.TransferQuotaAsync(child.Id, 5000);
+var link = await partner.Partner.CreateWhatsappSignupLinkAsync(child.Id);
+// link.Url müşterinize iletilir (24 saat geçerli, tek kullanımlık).
+
+// Alt hesap adına gönderim, alt hesabın anahtarıyla yapılır:
+using var childClient = new IletinizClient(key.Key);
+```
+
+`CreateAccountAsync`, `CreateApiKeyAsync` ve `TransferQuotaAsync` hata durumunda otomatik yeniden denenmez (çift kayıt / çift aktarım riskine karşı).
+
 ### Mesaj durumunu sorgulamak
 
 ```csharp
 var info = await client.Messages.RetrieveAsync(jobId);
 // info.Status: MessageStatus.Sent | Queued | Failed | Delivered | Expired | Rejected | Unknown
+// info.Sandbox: test (iltz_test_) anahtarıyla gönderildiyse true
 ```
 
 ### Sağlık kontrolü
@@ -266,6 +393,8 @@ using var client = new IletinizClient(new IletinizClientOptions
     Transport = new FakeTransport(),
 });
 ```
+
+SDK'nın kendi testleri: `dotnet test Iletiniz.sln` (`tests/Iletiniz.Tests`, xUnit).
 
 ## Katkıda Bulunma / Contributing
 

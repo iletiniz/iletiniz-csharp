@@ -11,5 +11,6 @@ public sealed record MessageStatusResponse(
     [property: JsonPropertyName("error")] ErrorInfo? Error,
     [property: JsonPropertyName("created_at")] string CreatedAt,
     [property: JsonPropertyName("sent_at")] string? SentAt,
-    [property: JsonPropertyName("delivered_at")] string? DeliveredAt
+    [property: JsonPropertyName("delivered_at")] string? DeliveredAt,
+    [property: JsonPropertyName("sandbox")] bool? Sandbox = null
 );

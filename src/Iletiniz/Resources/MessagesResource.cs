@@ -85,9 +85,11 @@ public sealed class MessagesResource
         var hasBody = !string.IsNullOrEmpty(p.Body);
         var hasTemplate = !string.IsNullOrEmpty(p.Template);
 
-        if (hasBody == hasTemplate)
+        var hasWa = p.WhatsappTemplate is not null;
+
+        if ((hasBody ? 1 : 0) + (hasTemplate ? 1 : 0) + (hasWa ? 1 : 0) != 1)
         {
-            throw new IletinizException("'Body' veya 'Template' alanlarından tam olarak biri zorunludur.");
+            throw new IletinizException("'Body', 'Template' veya 'WhatsappTemplate' alanlarından tam olarak biri zorunludur.");
         }
         if (p.Variables is not null && !hasTemplate)
         {
@@ -116,6 +118,11 @@ public sealed class MessagesResource
         }
 
         var usingTemplate = !string.IsNullOrEmpty(p.Template);
+        var usingWa = p.WhatsappTemplate is not null;
+        if (usingTemplate && usingWa)
+        {
+            throw new IletinizException("'Template' ve 'WhatsappTemplate' birlikte kullanılamaz.");
+        }
 
         for (var i = 0; i < p.Items.Count; i++)
         {
@@ -128,7 +135,20 @@ public sealed class MessagesResource
             {
                 throw new IletinizException($"Items[{i}].To 7-32 karakter arasında olmalıdır.");
             }
-            if (usingTemplate)
+            if (item.WhatsappComponents is not null && !usingWa)
+            {
+                throw new IletinizException(
+                    $"Items[{i}].WhatsappComponents yalnızca 'WhatsappTemplate' ile kullanılabilir.");
+            }
+            if (usingWa)
+            {
+                if (item.Body is not null || item.Variables is not null)
+                {
+                    throw new IletinizException(
+                        $"'WhatsappTemplate' verildi: Items[{i}].Body ve Variables kullanılamaz.");
+                }
+            }
+            else if (usingTemplate)
             {
                 if (item.Body is not null)
                 {

@@ -16,9 +16,25 @@ internal static class ApiExceptionFactory
                 using var doc = JsonDocument.Parse(raw);
                 if (doc.RootElement.ValueKind == JsonValueKind.Object)
                 {
-                    if (doc.RootElement.TryGetProperty("error", out var errEl) && errEl.ValueKind == JsonValueKind.String)
+                    if (doc.RootElement.TryGetProperty("error", out var errEl))
                     {
-                        code = errEl.GetString();
+                        if (errEl.ValueKind == JsonValueKind.String)
+                        {
+                            // Doğrulama hataları: {"error": "validation_failed", "message": "..."}
+                            code = errEl.GetString();
+                        }
+                        else if (errEl.ValueKind == JsonValueKind.Object)
+                        {
+                            // Domain hataları: {"error": {"code": "...", "message": "..."}}
+                            if (errEl.TryGetProperty("code", out var c) && c.ValueKind == JsonValueKind.String)
+                            {
+                                code = c.GetString();
+                            }
+                            if (errEl.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String)
+                            {
+                                message = m.GetString();
+                            }
+                        }
                     }
                     if (doc.RootElement.TryGetProperty("message", out var msgEl) && msgEl.ValueKind == JsonValueKind.String)
                     {

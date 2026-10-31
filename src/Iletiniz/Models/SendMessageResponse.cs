@@ -11,5 +11,9 @@ public sealed record SendMessageResponse(
     [property: JsonPropertyName("template")] string? Template,
     [property: JsonPropertyName("template_key")] string? TemplateKey,
     [property: JsonPropertyName("error")] ErrorInfo? Error,
-    [property: JsonPropertyName("created_at")] string CreatedAt
+    [property: JsonPropertyName("created_at")] string CreatedAt,
+    [property: JsonPropertyName("whatsapp_template")] string? WhatsappTemplate = null,
+    [property: JsonPropertyName("sandbox")] bool? Sandbox = null,
+    [property: JsonPropertyName("scheduled_id")] long? ScheduledId = null,
+    [property: JsonPropertyName("scheduled_at")] string? ScheduledAt = null
 );

@@ -12,7 +12,7 @@ namespace Iletiniz.Models;
 /// </summary>
 public sealed class SendMessageParams
 {
-    /// <summary>Alıcı telefon numarası (E.164 önerilir).</summary>
+    /// <summary>Alıcı telefon numarası (E.164 önerilir; 05551234567, 5551234567 ve 905551234567 gibi Türkiye yerel biçimleri de kabul edilir).</summary>
     [JsonPropertyName("to")]
     public string To { get; init; } = string.Empty;
 
@@ -31,7 +31,12 @@ public sealed class SendMessageParams
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyDictionary<string, object>? Variables { get; init; }
 
-    /// <summary>Gönderici adı / başlık.</summary>
+    /// <summary>Meta onaylı WhatsApp şablonu (yalnız WhatsApp sağlayıcısı). <c>Body</c>/<c>Template</c> ile birlikte kullanılamaz.</summary>
+    [JsonPropertyName("whatsappTemplate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WhatsappTemplate? WhatsappTemplate { get; init; }
+
+    /// <summary>SMS: gönderici başlığı. WhatsApp: gönderici numaranın Meta <c>phone_number_id</c> değeri.</summary>
     [JsonPropertyName("sender")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Sender { get; init; }
@@ -49,4 +54,12 @@ public sealed class SendMessageParams
     [JsonPropertyName("iys")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Iys { get; init; }
+
+    /// <summary>
+    /// İleri tarihli gönderim (en az 30 sn, en fazla 90 gün sonrası). Verilirse yanıtta
+    /// <c>Status = Scheduled</c> ve <c>ScheduledId</c> döner.
+    /// </summary>
+    [JsonPropertyName("scheduledAt")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? ScheduledAt { get; init; }
 }

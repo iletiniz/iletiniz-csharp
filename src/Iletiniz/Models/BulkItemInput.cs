@@ -15,4 +15,9 @@ public sealed class BulkItemInput
     [JsonPropertyName("variables")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyDictionary<string, object>? Variables { get; init; }
+
+    /// <summary>Bu alıcıya özel WhatsApp şablon bileşenleri (yalnız <c>WhatsappTemplate</c> ile).</summary>
+    [JsonPropertyName("whatsappComponents")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<IReadOnlyDictionary<string, object>>? WhatsappComponents { get; init; }
 }

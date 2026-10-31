@@ -25,7 +25,7 @@ namespace Iletiniz;
 public sealed class IletinizClient : IDisposable
 {
     /// <summary>SDK sürümü.</summary>
-    public const string Version = "0.1.0";
+    public const string Version = "0.2.0";
 
     private const string DefaultBaseUrl = "https://api.iletiniz.com";
     private static readonly Regex ApiKeyRegex = new(
@@ -37,6 +37,15 @@ public sealed class IletinizClient : IDisposable
 
     /// <summary>Sağlık kontrolü servisi.</summary>
     public HealthResource Health { get; }
+
+    /// <summary><c>/v1/scheduled</c>: zamanlanmış gönderimler.</summary>
+    public ScheduledResource Scheduled { get; }
+
+    /// <summary><c>/v1/reminders</c>: hatırlatma kuralları.</summary>
+    public RemindersResource Reminders { get; }
+
+    /// <summary><c>/v1/partner</c>: partner API (yalnız <c>partner:manage</c> yetkili canlı anahtar).</summary>
+    public PartnerResource Partner { get; }
 
     private readonly ITransport? _ownedTransport;
 
@@ -113,6 +122,9 @@ public sealed class IletinizClient : IDisposable
 
         Messages = new MessagesResource(http);
         Health = new HealthResource(http);
+        Scheduled = new ScheduledResource(http);
+        Reminders = new RemindersResource(http);
+        Partner = new PartnerResource(http);
     }
 
     public void Dispose()

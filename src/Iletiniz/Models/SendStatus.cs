@@ -10,4 +10,6 @@ public enum SendStatus
     Sent,
     Queued,
     Failed,
+    /// <summary><c>ScheduledAt</c> ile ileri tarihe planlandı.</summary>
+    Scheduled,
 }

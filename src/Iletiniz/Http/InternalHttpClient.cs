@@ -43,7 +43,8 @@ internal sealed class InternalHttpClient
         string path,
         object? body,
         RequestOptions? options,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool retry = true)
     {
         var url = BuildUrl(path);
 
@@ -85,7 +86,7 @@ internal sealed class InternalHttpClient
             }
             catch (IletinizTimeoutException)
             {
-                if (ShouldRetry(null, attempt))
+                if (retry && ShouldRetry(null, attempt))
                 {
                     attempt++;
                     await Task.Delay(BackoffDelay(attempt, null), cancellationToken).ConfigureAwait(false);
@@ -95,7 +96,7 @@ internal sealed class InternalHttpClient
             }
             catch (IletinizConnectionException)
             {
-                if (ShouldRetry(null, attempt))
+                if (retry && ShouldRetry(null, attempt))
                 {
                     attempt++;
                     await Task.Delay(BackoffDelay(attempt, null), cancellationToken).ConfigureAwait(false);
@@ -122,7 +123,7 @@ internal sealed class InternalHttpClient
                 }
             }
 
-            if (ShouldRetry(status, attempt))
+            if (retry && ShouldRetry(status, attempt))
             {
                 attempt++;
                 await Task.Delay(BackoffDelay(attempt, response.GetHeader("retry-after")), cancellationToken).ConfigureAwait(false);

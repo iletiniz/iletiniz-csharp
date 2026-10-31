@@ -7,5 +7,6 @@ public sealed record SendBulkItemResult(
     [property: JsonPropertyName("to")] string To,
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("job_id")] string? JobId,
-    [property: JsonPropertyName("error")] ErrorInfo? Error
+    [property: JsonPropertyName("error")] ErrorInfo? Error,
+    [property: JsonPropertyName("delivered_via")] string? DeliveredVia = null
 );
